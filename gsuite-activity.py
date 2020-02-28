@@ -49,14 +49,24 @@ def handler(event,context):
     # delegate to an account (should be super user with permisisons to run activity reports)
     credentials = credentials.create_delegated(GSUITE_DELEGATED_ACCOUNT)
     # get events since last time we ran (default an hour ago)
-    since=get_parameter(ssmclient,'/gsuite-events/lastquerytime',(utcnow()-timedelta(minutes=60)).isoformat())
+    since=get_parameter('/gsuite-events/lastquerytime',(utcnow()-timedelta(minutes=60)).isoformat())
     service = build('admin', 'reports_v1', credentials=credentials)
 
-    results = service.activities().list(userKey='all',
-                                        applicationName='login',
-                                        maxResults=1000,
-                                        startTime=since
-                                    ).execute()
-    records = results.get('items', [])
-    send_to_firehose(records)
-    put_parameter(ssmclient,'/gsuite-events/lastquerytime',utcnow().isoformat())
+    next_page=True
+    page_token=None
+    while next_page:
+        results = service.activities().list(userKey='all',
+                                            applicationName='login',
+                                            maxResults=1000,
+                                            startTime=since,
+                                            pageToken=page_token,
+                                        ).execute()
+        records = results.get('items', [])
+        if records:
+            send_to_firehose(records)
+        if "nextPageToken" not in results:
+            next_page=False
+        else:
+            page_token=results["nextPageToken"]
+
+    put_parameter('/gsuite-events/lastquerytime',utcnow().isoformat())
