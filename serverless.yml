@@ -14,12 +14,18 @@ provider:
     REGION: ${opt:region, self:provider.region}
     CONFIGFILE: config.${self:provider.stage}.yml
     FIREHOSE_DELIVERY_STREAM: ${file(config.${self:provider.stage}.yml):FIREHOSE_DELIVERY_STREAM}
+    GSUITE_CREDENTIALS_SECRET_NAME: ${file(config.${self:provider.stage}.yml):GSUITE_CREDENTIALS_SECRET_NAME}
   iamRoleStatements:
     - Effect: Allow
       Action:
-        - s3:*
+        - ssm:*
       Resource:
-        - ${self:custom.s3_log_bucket_arn}/*
+        - "arn:aws:ssm:${opt:region, self:provider.region}:*:parameter/gsuite-events/lastquerytime"
+    - Effect: Allow
+      Action:
+        - secretsmanager:*
+      Resource:
+        - "arn:aws:secretsmanager:${opt:region, self:provider.region}:*:secret:${self:provider.environment.GSUITE_CREDENTIALS_SECRET_NAME}"
     - Effect: Allow
       Action:
         - firehose:PutRecord
