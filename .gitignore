@@ -127,5 +127,11 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# misc
 .vscode/settings.json
 Pipfile.lock
+
+#serverless runtime
+node_modules/
+.serverless
