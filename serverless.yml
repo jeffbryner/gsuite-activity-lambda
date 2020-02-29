@@ -15,6 +15,7 @@ provider:
     CONFIGFILE: config.${self:provider.stage}.yml
     FIREHOSE_DELIVERY_STREAM: ${file(config.${self:provider.stage}.yml):FIREHOSE_DELIVERY_STREAM}
     GSUITE_CREDENTIALS_SECRET_NAME: ${file(config.${self:provider.stage}.yml):GSUITE_CREDENTIALS_SECRET_NAME}
+    GSUITE_DELEGATED_ACCOUNT: ${file(config.${self:provider.stage}.yml):GSUITE_DELEGATED_ACCOUNT}
   iamRoleStatements:
     - Effect: Allow
       Action:
@@ -25,7 +26,7 @@ provider:
       Action:
         - secretsmanager:*
       Resource:
-        - "arn:aws:secretsmanager:${opt:region, self:provider.region}:*:secret:${self:provider.environment.GSUITE_CREDENTIALS_SECRET_NAME}"
+        - "arn:aws:secretsmanager:${opt:region, self:provider.region}:*:secret:${self:provider.environment.GSUITE_CREDENTIALS_SECRET_NAME}*"
     - Effect: Allow
       Action:
         - firehose:PutRecord
@@ -34,12 +35,12 @@ provider:
         - "arn:aws:firehose:${opt:region, self:provider.region}:*:deliverystream/${self:provider.environment.FIREHOSE_DELIVERY_STREAM}"
 
 functions:
-  uoc:
+  gsuite-activity:
     handler: gsuite-activity.handler
     timeout: 600
     reservedConcurrency: 1
     events:
-      - schedule: rate(2 minutes)
+      - schedule: rate(5 minutes)
 package:
   exclude:
     - node_modules/**
