@@ -11,6 +11,7 @@ boto3 = "*"
 pytz = "*"
 oauth2client = "*"
 google-api-python-client = "*"
+tzlocal = "*"
 
 [requires]
 python_version = "3.7"
