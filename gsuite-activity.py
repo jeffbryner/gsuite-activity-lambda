@@ -53,9 +53,10 @@ def handler(event,context):
     logger.info(f"Looking for records since: {since}")
     service = build('admin', 'reports_v1', credentials=credentials,cache_discovery=False)
 
-    next_page=True
-    page_token=None
-    last_run_time=utcnow().isoformat()
+    next_page = True
+    page_token = None
+    last_run_time = utcnow().isoformat()
+    records_retrieved = False
     while next_page:
         results = service.activities().list(userKey='all',
                                             applicationName='login',
@@ -67,9 +68,14 @@ def handler(event,context):
         logger.info(f"sending: {len(records)} gsuite records to firehose")
         if records:
             send_to_firehose(records)
+            records_retrieved = True
         if "nextPageToken" not in results:
             next_page=False
         else:
             page_token=results["nextPageToken"]
 
-    put_parameter('/gsuite-events/lastquerytime',last_run_time)
+    # sometimes the gsuite activity log lags behind realtime
+    # so regardless of the time we request, there won't be records available until later
+    # only move the time forward if we received records.
+    if records_retrieved:
+        put_parameter('/gsuite-events/lastquerytime',last_run_time)
