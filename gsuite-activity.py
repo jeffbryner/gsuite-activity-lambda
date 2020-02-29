@@ -50,10 +50,12 @@ def handler(event,context):
     credentials = credentials.create_delegated(GSUITE_DELEGATED_ACCOUNT)
     # get events since last time we ran (default an hour ago)
     since=get_parameter('/gsuite-events/lastquerytime',(utcnow()-timedelta(minutes=60)).isoformat())
-    service = build('admin', 'reports_v1', credentials=credentials)
+    logger.info(f"Looking for records since: {since}")
+    service = build('admin', 'reports_v1', credentials=credentials,cache_discovery=False)
 
     next_page=True
     page_token=None
+    last_run_time=utcnow().isoformat()
     while next_page:
         results = service.activities().list(userKey='all',
                                             applicationName='login',
@@ -62,6 +64,7 @@ def handler(event,context):
                                             pageToken=page_token,
                                         ).execute()
         records = results.get('items', [])
+        logger.info(f"sending: {len(records)} gsuite records to firehose")
         if records:
             send_to_firehose(records)
         if "nextPageToken" not in results:
@@ -69,4 +72,4 @@ def handler(event,context):
         else:
             page_token=results["nextPageToken"]
 
-    put_parameter('/gsuite-events/lastquerytime',utcnow().isoformat())
+    put_parameter('/gsuite-events/lastquerytime',last_run_time)
